@@ -72,12 +72,11 @@
 
         const series = stack(data);
 
-        // Color scale (using a minimalist color scheme)
+        // Updated color scale with a rainbow-like palette
         const color = d3.scaleOrdinal()
-            .domain(countries)
-            .range(d3.schemeBlues[6].map((color, index) => 
-                index === 5 ? '#08306B' : color 
-            ));
+             .domain(countries)
+             .range(["#E63946", "#F4A261", "#E9C46A", "#2A9D8F", "#264653", "#6A4C93"]); // Vibrant colors
+
 
         // Y scale
         const y = d3.scaleLinear()
