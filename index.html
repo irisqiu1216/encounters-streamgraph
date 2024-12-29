@@ -19,52 +19,54 @@
             box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
             font-size: 12px;
         }
+        h1{
+            font-size: 32px;
+        }
     </style>
 </head>
 <body>
-    <h1>Border Encounters Trend by Country in Recent Five Years</h1>
+    <h1>South-Ameicans Dominate Migrants Group and Chinese Border Crossers Surged After 2022</h1>
     <div id="chart"></div>
     <div id="tooltip" class="tooltip"></div>
 
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script>
-    // Main function to create stream graph
+    // Main function: Draw the stream graph
     function createStreamGraph(data) {
         // Clear any existing chart
         d3.select("#chart").selectAll("*").remove();
 
-        // Increased left margin for legend
-        const margin = {top: 50, right: 50, bottom: 50, left: 200};
+        // Chart dimensions and margins
+        const margin = {top: 8, right: 50, bottom: 50, left: 10};
         const width = 1100 - margin.left - margin.right;
         const height = 600 - margin.top - margin.bottom;
 
-        // Parse time and numeric data
+        // Parse date and numeric values
         const parseTime = d3.timeParse("%Y-%m-%d");
         data.forEach(d => {
             d.Date = parseTime(d.Date);
-            // Convert all numeric columns
             const countries = ["MEXICO", "GUATEMALA", "VENEZUELA", "HONDURAS", "CUBA", "PEOPLE'S REPUBLIC OF CHINA"];
             countries.forEach(country => {
                 d[country] = +d[country];
             });
         });
 
-        // Get country columns
+        // Define the country columns
         const countries = ["MEXICO", "GUATEMALA", "VENEZUELA", "HONDURAS", "CUBA", "PEOPLE'S REPUBLIC OF CHINA"];
 
-        // Create SVG with translation to account for margins
+        // Create the SVG canvas
         const svg = d3.select("#chart").append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
-     
-        // Scales
+
+        // X-axis scale
         const x = d3.scaleTime()
             .domain(d3.extent(data, d => d.Date))
             .range([0, width]);
 
-        // Stack generator
+        // Stack generator for stream graph
         const stack = d3.stack()
             .keys(countries)
             .order(d3.stackOrderNone)
@@ -72,13 +74,12 @@
 
         const series = stack(data);
 
-        // Updated color scale with a rainbow-like palette
+        // Color scale for each country
         const color = d3.scaleOrdinal()
-             .domain(countries)
-             .range(["#E63946", "#F4A261", "#E9C46A", "#2A9D8F", "#264653", "#6A4C93"]); // Vibrant colors
+            .domain(countries)
+            .range(["#e1e1e1", "#c5c5c5", "#afafaf", "#808080", "#787878", "#C80A57"]);
 
-
-        // Y scale
+        // Y-axis scale
         const y = d3.scaleLinear()
             .domain([
                 d3.min(series, d => d3.min(d, d => d[0])),
@@ -86,14 +87,14 @@
             ])
             .range([height, 0]);
 
-        // Area generator
+        // Area generator for stream layers
         const area = d3.area()
             .x(d => x(d.data.Date))
             .y0(d => y(d[0]))
             .y1(d => y(d[1]))
             .curve(d3.curveBasis);
 
-        // Create layers
+        // Draw stream layers
         svg.selectAll("path")
             .data(series)
             .enter().append("path")
@@ -101,25 +102,19 @@
             .attr("fill", (d, i) => color(i))
             .attr("opacity", 0.7)
             .on("mousemove", function(event, d) {
-                // Find the index of the current series
+                // Tooltip handling
                 const seriesIndex = series.indexOf(d);
                 const countryName = countries[seriesIndex];
-
-                // Find the data point closest to the mouse position
                 const mouseX = d3.pointer(event)[0];
                 const date = x.invert(mouseX);
                 const closestDataPoint = data.reduce((prev, curr) => 
                     Math.abs(curr.Date - date) < Math.abs(prev.Date - date) ? curr : prev
                 );
-
-                // Prepare simple tooltip content
                 const tooltipContent = `
                     Date: ${closestDataPoint.Date.toLocaleDateString()}<br>
                     Country: ${countryName}<br>
                     Encounters: ${closestDataPoint[countryName].toLocaleString()}
                 `;
-
-                // Show tooltip
                 d3.select("#tooltip")
                     .style("opacity", 0.9)
                     .html(tooltipContent)
@@ -130,48 +125,50 @@
                 d3.select("#tooltip").style("opacity", 0);
             });
 
-        // X Axis
+        // X-axis with reduced tick marks
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x)
+                .ticks(5) // Limit the number of ticks
                 .tickFormat(d3.timeFormat("%Y-%m"))
             );
 
-        // X Axis Label
+        // X-axis label
         svg.append("text")
             .attr("x", width / 2)
             .attr("y", height + 40)
             .attr("text-anchor", "middle")
             .text("Date");
 
-        // Title
+        // Add a title to the chart
         svg.append("text")
             .attr("x", width / 2)
             .attr("y", -20)
             .attr("text-anchor", "middle")
             .style("font-size", "16px");
 
-        // Legend (positioned on the left side)
+        // Legend
         const legend = svg.selectAll(".legend")
             .data(countries)
             .enter().append("g")
             .attr("class", "legend")
-            .attr("transform", (d, i) => `translate(-150,${i * 30})`);
+            .attr("transform", (d, i) => `translate(-${margin.left - 10},${i * 30})`);
 
         legend.append("circle")
             .attr("cx", 0)
             .attr("cy", 9)
-            .attr("r", 8)
+            .attr("r", 7)
             .style("fill", (d, i) => color(i));
 
         legend.append("text")
             .attr("x", 18)
             .attr("y", 9)
             .attr("dy", ".35em")
+            .style("font-size", "14px") 
             .text(d => d);
     }
 
-    // Load data
+    // Load CSV data and create the chart
     d3.csv("countries_trend.csv")
         .then(createStreamGraph)
         .catch(error => {
